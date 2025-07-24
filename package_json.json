@@ -1,0 +1,14 @@
+{
+  "name": "bay-area-cleaning-calculator",
+  "version": "1.0.0",
+  "description": "Cleaning service calculator with Stripe payments",
+  "main": "index.html",
+  "dependencies": {
+    "stripe": "^14.0.0"
+  },
+  "scripts": {
+    "build": "echo 'No build step required'"
+  },
+  "author": "Bay Area Cleaning Pros",
+  "license": "MIT"
+}

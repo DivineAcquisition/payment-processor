@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bay Area Cleaning Pros - Book & Pay Instantly</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .calculator-container {
+            max-width: 700px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #9511F8 0%, #CA8AFF 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .discount-banner {
+            background: #FFD700;
+            color: #333;
+            padding: 15px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+
+        .calculator-content {
+            padding: 40px;
+        }
+
+        .input-group {
+            margin-bottom: 30px;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #9511F8;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(149, 17, 248, 0.1);
+        }
+
+        .helper-text {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 0.9rem;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .success-message {
+            color: #28a745;
+            font-size: 0.9rem;
+            margin-top: 8px;
+            display: none;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .service-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .service-button {
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            background: #f8f9fa;
+            cursor: pointer;
+            text-align: center;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .service-label {
+            font-size: 0.75rem;
+            color: #666;
+            font-weight: normal;
+            margin-top: 5px;
+        }
+
+        .service-button:hover {
+            background: #e9ecef;
+            border-color: #9511F8;
+            transform: translateY(-2px);
+        }
+
+        .service-button.active {
+            background: #9511F8;
+            color: white;
+            border-color: #9511F8;
+            transform: translateY(-2px);
+        }
+
+        .service-button.active .service-label {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .results-section {
+            margin-top: 30px;
+            padding: 30px;
+            background: linear-gradient(135deg, #9511F8 0%, #CA8AFF 100%);
+            border-radius: 15px;
+            color: white;
+            text-align: center;
+            display: none;
+        }
+
+        .price-display {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .original-price {
+            text-decoration: line-through;
+            opacity: 0.7;
+            font-size: 1.5rem;
+            margin-right: 10px;
+        }
+
+        .savings-badge {
+            background: #FFD700;
+            color: #333;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin: 10px 0;
+            display: inline-block;
+        }
+
+        .service-type {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .home-size {
+            font-size: 1rem;
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+
+        .payment-info {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            text-align: left;
+        }
+
+        .cta-section {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            flex-direction: column;
+        }
+
+        .cta-button {
+            background: white;
+            color: #9511F8;
+            padding: 18px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+            display: block;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .cta-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .cta-button.secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid white;
+        }
+
+        .cta-button.secondary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Payment Modal Styles */
+        .payment-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .payment-modal-content {
+            background: white;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow: auto;
+            position: relative;
+        }
+
+        .payment-modal-header {
+            background: linear-gradient(135deg, #9511F8 0%, #CA8AFF 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .payment-modal-header h2 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .payment-summary {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            text-align: left;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.3s ease;
+        }
+
+        .close-modal:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .payment-form {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #9511F8;
+        }
+
+        #payment-element {
+            margin: 20px 0;
+        }
+
+        .pay-button {
+            width: 100%;
+            background: #9511F8;
+            color: white;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .pay-button:hover {
+            background: #7a0dc7;
+        }
+
+        .pay-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .disclaimer {
+            margin-top: 30px;
+            padding: 20px;
+            background: #e3f2fd;
+            border: 1px solid #90caf9;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            color: #1565c0;
+            line-height: 1.6;
+        }
+
+        .trust-points {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .trust-point {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .calculator-content {
+                padding: 20px;
+            }
+            
+            .service-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .price-display {
+                font-size: 2.5rem;
+            }
+            
+            .trust-points {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .payment-modal-content {
+                margin: 10px;
+                max-width: calc(100% - 20px);
+            }
+
+            .payment-modal-header {
+                padding: 20px;
+            }
+
+            .payment-form {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator-container">
+        <div class="header">
+            <h1>Book & Pay Instantly</h1>
+            <p>Professional cleaning with secure payment</p>
+        </div>
+        
+        <div class="discount-banner">
+            🎉 SPECIAL OFFER: $50 OFF Your First Cleaning!
+        </div>
+
+        <div class="calculator-content">
+            <form id="priceCalculator">
+                <div class="input-group">
+                    <label for="zipcode">Your ZIP Code</label>
+                    <input 
+                        type="text" 
+                        id="zipcode" 
+                        maxlength="5" 
+                        placeholder="Enter ZIP code (e.g., 77520)"
+                        required
+                    >
+                    <div class="error-message" id="zipcodeError">
+                        Sorry, we don't service this area yet. We serve Baytown, La Porte, Channelview, and surrounding areas.
+                    </div>
+                    <div class="success-message" id="zipcodeSuccess">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="#28a745">
+                            <path d="M13.485 2.515a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 1 1 1.06-1.06L5.5 9.53l6.97-6.97a.75.75 0 0 1 1.06 0z"/>
+                        </svg>
+                        Great! We service your area
+                    </div>
+                </div>
+
+                <div class="input-group" id="sqftGroup" style="display: none;">
+                    <label for="sqft">Home Size (Square Feet)</label>
+                    <input 
+                        type="number" 
+                        id="sqft" 
+                        min="500" 
+                        max="6000" 
+                        placeholder="Enter square footage"
+                        value="1800"
+                    >
+                    <div class="helper-text">
+                        Not sure? Estimates: 2BR ≈ 1,200 | 3BR ≈ 1,800 | 4BR ≈ 2,400
+                    </div>
+                </div>
+
+                <div class="input-group" id="serviceGroup" style="display: none;">
+                    <label>Choose Your Service</label>
+                    <div class="service-buttons">
+                        <div class="service-button" data-service="weekly" onclick="selectService('weekly')">
+                            Weekly
+                            <div class="service-label">Best value</div>
+                        </div>
+                        <div class="service-button active" data-service="eow" onclick="selectService('eow')">
+                            Bi-Weekly
+                            <div class="service-label">Most popular</div>
+                        </div>
+                        <div class="service-button" data-service="monthly" onclick="selectService('monthly')">
+                            Monthly
+                            <div class="service-label">Maintenance</div>
+                        </div>
+                        <div class="service-button" data-service="general" onclick="selectService('general')">
+                            One-Time
+                            <div class="service-label">General cleaning</div>
+                        </div>
+                        <div class="service-button" data-service="deep" onclick="selectService('deep')">
+                            Deep Clean
+                            <div class="service-label">Thorough clean</div>
+                        </div>
+                        <div class="service-button" data-service="moveinout" onclick="selectService('moveinout')">
+                            Move In/Out
+                            <div class="service-label">Empty home</div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <div class="results-section" id="resultsSection">
+                <div class="price-display">
+                    <span class="original-price" id="originalPrice">$140</span>
+                    <span id="finalPrice">$90</span>
+                </div>
+                <div class="savings-badge" id="savingsBadge">You Save $50!</div>
+                <div class="service-type" id="serviceType">Bi-Weekly Cleaning Service</div>
+                <div class="home-size" id="homeSize">1,800 sq ft home</div>
+                
+                <div class="payment-info">
+                    <strong>💳 Smart Payment Plan</strong><br>
+                    Pay 50% now to secure your booking. Remaining balance + your $50 credit applied after service completion!
+                </div>
+                
+                <div class="cta-section">
+                    <button onclick="openPaymentModal()" class="cta-button" id="payButton">
+                        💳 Pay <span id="payButtonAmount">50%</span> & Book Now
+                    </button>
+                    <a href="tel:+18556831763" class="cta-button secondary">
+                        📞 Call: (855) 683-1763
+                    </a>
+                </div>
+            </div>
+
+            <div class="disclaimer">
+                <strong>Secure Payment & Booking:</strong>
+                <div class="disclaimer-item">
+                    Pay just 50% upfront to secure your booking. The remaining balance (minus your $50 discount) is due after service completion. All payments processed securely through Stripe.
+                </div>
+                <strong>Service Guarantee:</strong>
+                <div class="disclaimer-item">
+                    100% satisfaction guaranteed. If you're not happy, we'll return for free or provide a full refund.
+                </div>
+            </div>
+
+            <div class="trust-points">
+                <div class="trust-point">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="#28a745">
+                        <path d="M13.485 2.515a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 1 1 1.06-1.06L5.5 9.53l6.97-6.97a.75.75 0 0 1 1.06 0z"/>
+                    </svg>
+                    Secure Stripe Payments
+                </div>
+                <div class="trust-point">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="#28a745">
+                        <path d="M13.485 2.515a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 1 1 1.06-1.06L5.5 9.53l6.97-6.97a.75.75 0 0 1 1.06 0z"/>
+                    </svg>
+                    Licensed & Insured
+                </div>
+                <div class="trust-point">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="#28a745">
+                        <path d="M13.485 2.515a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 1 1 1.06-1.06L5.5 9.53l6.97-6.97a.75.75 0 0 1 1.06 0z"/>
+                    </svg>
+                    No Contracts
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div class="payment-modal" id="paymentModal">
+        <div class="payment-modal-content">
+            <div class="payment-modal-header">
+                <button class="close-modal" onclick="closePaymentModal()">&times;</button>
+                <h2>Secure Payment</h2>
+                <div class="payment-summary">
+                    <div><strong>Service:</strong> <span id="paymentServiceType">Bi-Weekly Cleaning</span></div>
+                    <div><strong>Home Size:</strong> <span id="paymentHomeSize">1,800 sq ft</span></div>
+                    <div><strong>Service Price:</strong> <span id="paymentServicePrice">$120</span></div>
+                    <div><strong>First-Time Discount:</strong> -$50</div>
+                    <div style="border-top: 1px solid rgba(255,255,255,0.3); margin-top: 10px; padding-top: 10px;">
+                        <strong>Pay Today (50%):</strong> $<span id="prepaymentAmount">60</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="payment-form">
+                <form id="payment-form">
+                    <div class="form-group">
+                        <label for="customer-name">Full Name</label>
+                        <input type="text" id="customer-name" required placeholder="Enter your full name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="customer-email">Email Address</label>
+                        <input type="email" id="customer-email" required placeholder="Enter your email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="customer-phone">Phone Number</label>
+                        <input type="tel" id="customer-phone" required placeholder="Enter your phone number">
+                    </div>
+                    
+                    <div id="payment-element">
+                        <!-- Stripe Elements will create form elements here -->
+                    </div>
+                    
+                    <button id="submit-payment" class="pay-button">
+                        💳 Pay $<span id="finalPayAmount">60</span> & Book Cleaning
+                    </button>
+                    
+                    <div id="payment-error" class="error-message"></div>
+                </form>
+                
+                <div id="loading" class="loading">
+                    Processing payment...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Your live Stripe publishable key
+        const stripe = Stripe('pk_live_51LS4ARKugxYY6ADiKfpWzGBiGMykyaFxmI9oKZVqzWvsizE8cWYXEv50v9oPOcJQ5CsFcBIjtnHwCkUCq9COiaeu00ElMa1ni2');
+        let elements;
+        let paymentElement;
+
+        // Service area ZIP codes
+        const serviceableZipCodes = [
+            '77520', '77521', '77522', '77523', // Baytown
+            '77562', '77563', '77564', '77565', // La Porte
+            '77571', '77572', // League City (partial)
+            '77530', '77531', '77532', // Channelview
+            '77015', '77029', '77049', // East Houston
+            '77536', // Deer Park
+            '77580', '77581', // Mont Belvieu
+            '77582', // Crosby (partial)
+            '77586', // Seabrook (partial)
+            '77505', '77506', '77507' // Pasadena (partial)
+        ];
+
+        // Updated competitive pricing structure
+        const pricingTable = {
+            weekly: {
+                under1000: 85, '1001-1400': 95, '1401-1800': 105, '1801-2400': 115,
+                '2401-2800': 125, '2801-3300': 135, '3301-3900': 145, '3901-4500': 155, '4501-5100': 165
+            },
+            eow: {
+                under1000: 100, '1001-1400': 110, '1401-1800': 120, '1801-2400': 130,
+                '2401-2800': 140, '2801-3300': 150, '3301-3900': 160, '3901-4500': 170, '4501-5100': 180
+            },
+            monthly: {
+                under1000: 135, '1001-1400': 145, '1401-1800': 155, '1801-2400': 165,
+                '2401-2800': 175, '2801-3300': 185, '3301-3900': 195, '3901-4500': 205, '4501-5100': 215
+            },
+            general: {
+                under1000: 160, '1001-1400': 170, '1401-1800': 180, '1801-2400': 190,
+                '2401-2800': 200, '2801-3300': 210, '3301-3900': 220, '3901-4500': 230, '4501-5100': 240
+            },
+            deep: {
+                under1000: 260, '1001-1400': 280, '1401-1800': 300, '1801-2400': 330,
+                '2401-2800': 350, '2801-3300': 380, '3301-3900': 400, '3901-4500': 430, '4501-5100': 450
+            },
+            moveinout: {
+                under1000: 260, '1001-1400': 280, '1401-1800': 300, '1801-2400': 330,
+                '2401-2800': 350, '2801-3300': 380, '3301-3900': 400, '3901-4500': 430, '4501-5100': 450
+            }
+        };
+
+        const serviceLabels = {
+            weekly: 'Weekly Cleaning Service',
+            eow: 'Bi-Weekly Cleaning Service',
+            monthly: 'Monthly Cleaning Service',
+            general: 'One-Time General Cleaning',
+            deep: 'Deep Cleaning Service',
+            moveinout: 'Move In/Out Cleaning'
+        };
+
+        let currentService = 'eow';
+        let isValidZip = false;
+        let currentPrice = 0;
+        const discount = 50;
+        let prepaymentAmount = 0; // Will be calculated as 50% of service price
+
+        // Modal functions
+        function openPaymentModal() {
+            const sqft = parseInt(document.getElementById('sqft').value) || 1800;
+            const tier = getSizeTier(sqft);
+            const originalPrice = pricingTable[currentService][tier];
+            const discountedPrice = Math.max(originalPrice - discount, 0);
+            
+            // Calculate 50% prepayment of the discounted price
+            prepaymentAmount = Math.round((discountedPrice / 2) * 100) / 100; // Round to 2 decimal places
+            
+            // Update payment summary
+            document.getElementById('paymentServiceType').textContent = serviceLabels[currentService];
+            document.getElementById('paymentHomeSize').textContent = `${sqft.toLocaleString()} sq ft`;
+            document.getElementById('paymentServicePrice').textContent = `${originalPrice}`;
+            document.getElementById('prepaymentAmount').textContent = prepaymentAmount;
+            document.getElementById('finalPayAmount').textContent = prepaymentAmount;
+            
+            document.getElementById('paymentModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            
+            // Initialize Stripe payment
+            initializePayment();
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Initialize Stripe payment
+        async function initializePayment() {
+            try {
+                const sqft = parseInt(document.getElementById('sqft').value) || 1800;
+                const tier = getSizeTier(sqft);
+                const originalPrice = pricingTable[currentService][tier];
+                
+                // Create payment intent (Netlify Functions URL)
+                const response = await fetch('/.netlify/functions/create-payment-intent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        amount: Math.round(prepaymentAmount * 100), // Convert to cents
+                        service_type: currentService,
+                        home_size: sqft,
+                        original_price: originalPrice * 100,
+                        discounted_price: (originalPrice - discount) * 100,
+                        prepayment_amount: Math.round(prepaymentAmount * 100),
+                        discount_applied: discount * 100,
+                        zipcode: document.getElementById('zipcode').value
+                    }),
+                });
+
+                const { clientSecret } = await response.json();
+
+                // Create payment element
+                elements = stripe.elements({
+                    clientSecret: clientSecret,
+                    appearance: {
+                        theme: 'stripe',
+                        variables: {
+                            colorPrimary: '#9511F8',
+                            colorBackground: '#ffffff',
+                            colorText: '#30313d',
+                            colorDanger: '#df1b41',
+                            fontFamily: 'Inter, sans-serif',
+                            spacingUnit: '4px',
+                            borderRadius: '8px',
+                        }
+                    }
+                });
+
+                paymentElement = elements.create('payment');
+                paymentElement.mount('#payment-element');
+
+            } catch (error) {
+                console.error('Error initializing payment:', error);
+                document.getElementById('payment-error').textContent = 'Error initializing payment. Please try again.';
+                document.getElementById('payment-error').style.display = 'block';
+            }
+        }
+
+        // Handle payment submission
+        document.getElementById('payment-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const submitButton = document.getElementById('submit-payment');
+            const loading = document.getElementById('loading');
+            const errorElement = document.getElementById('payment-error');
+
+            // Show loading state
+            submitButton.disabled = true;
+            loading.style.display = 'block';
+            errorElement.style.display = 'none';
+
+            try {
+                const { error, paymentIntent } = await stripe.confirmPayment({
+                    elements,
+                    confirmParams: {
+                        return_url: `${window.location.origin}/payment-success`,
+                        payment_method_data: {
+                            billing_details: {
+                                name: document.getElementById('customer-name').value,
+                                email: document.getElementById('customer-email').value,
+                                phone: document.getElementById('customer-phone').value,
+                            },
+                        },
+                    },
+                    redirect: 'if_required'
+                });
+
+                if (error) {
+                    // Show error to customer
+                    errorElement.textContent = error.message;
+                    errorElement.style.display = 'block';
+                } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+                    // Payment succeeded
+                    showPaymentSuccess();
+                }
+            } catch (error) {
+                console.error('Payment error:', error);
+                errorElement.textContent = 'An unexpected error occurred. Please try again.';
+                errorElement.style.display = 'block';
+            } finally {
+                // Hide loading state
+                submitButton.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+
+        // Show payment success
+        function showPaymentSuccess() {
+            closePaymentModal();
+            
+            // Replace the results section with success message
+            const resultsSection = document.getElementById('resultsSection');
+            resultsSection.innerHTML = `
+                <div style="text-align: center; padding: 40px;">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">🎉</div>
+                    <h2 style="color: white; font-size: 2rem; margin-bottom: 15px;">Payment Successful!</h2>
+                    <p style="font-size: 1.2rem; margin-bottom: 20px; opacity: 0.9;">
+                        Your cleaning is booked and secured with 50% payment!
+                    </p>
+                    <div style="background: rgba(255,255,255,0.2); border-radius: 10px; padding: 20px; margin: 20px 0; text-align: left;">
+                        <strong>What happens next:</strong><br>
+                        ✅ You'll receive a confirmation email within 5 minutes<br>
+                        ✅ We'll call you within 24 hours to schedule your cleaning<br>
+                        ✅ Remaining balance minus your $50 credit due after service<br>
+                        ✅ For recurring services, your $50 credit applies to the 2nd visit
+                    </div>
+                    <a href="tel:+18556831763" class="cta-button secondary" style="display: inline-block; margin-top: 20px;">
+                        📞 Questions? Call (855) 683-1763
+                    </a>
+                </div>
+            `;
+        }
+
+        // ZIP code validation
+        document.getElementById('zipcode').addEventListener('input', function(e) {
+            const zipcode = e.target.value.replace(/\D/g, '');
+            e.target.value = zipcode;
+            
+            if (zipcode.length === 5) {
+                if (serviceableZipCodes.includes(zipcode)) {
+                    isValidZip = true;
+                    document.getElementById('zipcodeError').style.display = 'none';
+                    document.getElementById('zipcodeSuccess').style.display = 'flex';
+                    document.getElementById('sqftGroup').style.display = 'block';
+                    document.getElementById('serviceGroup').style.display = 'block';
+                    updatePrice();
+                } else {
+                    isValidZip = false;
+                    document.getElementById('zipcodeError').style.display = 'block';
+                    document.getElementById('zipcodeSuccess').style.display = 'none';
+                    document.getElementById('sqftGroup').style.display = 'none';
+                    document.getElementById('serviceGroup').style.display = 'none';
+                    document.getElementById('resultsSection').style.display = 'none';
+                }
+            } else {
+                document.getElementById('zipcodeError').style.display = 'none';
+                document.getElementById('zipcodeSuccess').style.display = 'none';
+            }
+        });
+
+        // Square footage input
+        document.getElementById('sqft').addEventListener('input', updatePrice);
+
+        // Service selection
+        function selectService(service) {
+            currentService = service;
+            document.querySelectorAll('.service-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-service="${service}"]`).classList.add('active');
+            updatePrice();
+        }
+
+        // Get size tier
+        function getSizeTier(sqft) {
+            if (sqft < 1000) return 'under1000';
+            if (sqft <= 1400) return '1001-1400';
+            if (sqft <= 1800) return '1401-1800';
+            if (sqft <= 2400) return '1801-2400';
+            if (sqft <= 2800) return '2401-2800';
+            if (sqft <= 3300) return '2801-3300';
+            if (sqft <= 3900) return '3301-3900';
+            if (sqft <= 4500) return '3901-4500';
+            if (sqft <= 5100) return '4501-5100';
+            return 'over5100';
+        }
+
+        // Update price display
+        function updatePrice() {
+            if (!isValidZip) return;
+            
+            const sqft = parseInt(document.getElementById('sqft').value) || 1800;
+            const tier = getSizeTier(sqft);
+            
+            if (tier === 'over5100') {
+                document.getElementById('resultsSection').style.display = 'none';
+                alert('For homes over 5,100 sq ft, please call us at (855) 683-1763 for a custom quote!');
+                return;
+            }
+            
+            const originalPrice = pricingTable[currentService][tier];
+            const discountedPrice = Math.max(originalPrice - discount, 0);
+            currentPrice = originalPrice;
+            
+            document.getElementById('originalPrice').textContent = `${originalPrice}`;
+            document.getElementById('finalPrice').textContent = `${discountedPrice}`;
+            document.getElementById('serviceType').textContent = serviceLabels[currentService];
+            document.getElementById('homeSize').textContent = `${sqft.toLocaleString()} sq ft home`;
+            
+            // Update savings badge
+            document.getElementById('savingsBadge').textContent = `You Save ${Math.min(discount, originalPrice)}!`;
+            
+            // Update pay button amount
+            const discountedPrice = Math.max(originalPrice - discount, 0);
+            const prepayAmount = Math.round((discountedPrice / 2) * 100) / 100;
+            document.getElementById('payButtonAmount').textContent = `${prepayAmount}`;
+            
+            document.getElementById('resultsSection').style.display = 'block';
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('paymentModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePaymentModal();
+            }
+        });
+
+        // Handle escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closePaymentModal();
+            }
+        });
+    </script>
+</body>
+</html>
+            
