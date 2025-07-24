@@ -1,33 +1,24 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+import Stripe from 'stripe';
 
-exports.handler = async (event, context) => {
-  // CORS headers for all responses
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS'
-  };
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-  // Handle preflight OPTIONS request
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers,
-      body: ''
-    };
+export default async function handler(req, res) {
+  // Enable CORS for Framer
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
   }
 
-  // Only allow POST requests
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method Not Allowed' })
-    };
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    // Parse request body
     const {
       amount,
       service_type,
@@ -36,21 +27,18 @@ exports.handler = async (event, context) => {
       discounted_price,
       prepayment_amount,
       discount_applied,
-      zipcode
-    } = JSON.parse(event.body);
+      zipcode,
+      customer_email
+    } = req.body;
 
     // Validate required fields
-    if (!service_type || !home_size || !prepayment_amount || !zipcode) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Missing required fields' })
-      };
+    if (!prepayment_amount || !service_type || !home_size) {
+      return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Create payment intent with Stripe
+    // Create payment intent
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: prepayment_amount, // Amount in cents (50% of discounted price)
+      amount: Math.round(prepayment_amount * 100), // Convert to cents
       currency: 'usd',
       automatic_payment_methods: {
         enabled: true,
@@ -63,40 +51,24 @@ exports.handler = async (event, context) => {
         prepayment_amount: prepayment_amount.toString(),
         remaining_balance: discounted_price ? (discounted_price - prepayment_amount).toString() : '0',
         discount_applied: discount_applied ? discount_applied.toString() : '0',
-        zipcode: zipcode,
+        zipcode: zipcode || '',
         business: 'Bay Area Cleaning Pros',
         payment_type: '50_percent_deposit',
         timestamp: new Date().toISOString()
       },
-      description: `50% Deposit: ${service_type} cleaning service - ${home_size} sq ft home (ZIP: ${zipcode})`,
-      receipt_email: null, // Will be collected in the payment form
+      description: `50% Deposit: ${service_type} cleaning - ${home_size} sq ft home`,
+      receipt_email: customer_email || null,
     });
 
-    // Return the client secret to the frontend
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        clientSecret: paymentIntent.client_secret,
-        paymentIntentId: paymentIntent.id
-      })
-    };
+    return res.status(200).json({
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id
+    });
 
   } catch (error) {
-    console.error('Payment intent creation failed:', error);
-    
-    // Return appropriate error message
-    const errorMessage = error.type === 'StripeCardError' 
-      ? error.message 
-      : 'Payment processing failed. Please try again.';
-
-    return {
-      statusCode: 400,
-      headers,
-      body: JSON.stringify({
-        error: errorMessage,
-        type: error.type || 'unknown_error'
-      })
-    };
+    console.error('Stripe error:', error);
+    return res.status(400).json({
+      error: error.message || 'Payment processing failed'
+    });
   }
-};
+}
